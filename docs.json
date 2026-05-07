@@ -1,122 +1,121 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "name": "CryptoVote",
   "theme": "mint",
-  "name": "Mint Starter Kit",
-  "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
-  },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
-          }
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
   },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#3B82F6",
+    "light": "#6366F1",
+    "dark": "#1D3A5F"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": ["introduction", "architecture", "security-model"]
+      },
+      {
+        "group": "Infrastructure",
+        "icon": "server",
+        "pages": [
+          "infra/github",
+          "infra/vercel",
+          "infra/render",
+          "infra/neon",
+          "infra/environments"
+        ]
+      },
+      {
+        "group": "Workflow",
+        "icon": "arrows-spin",
+        "pages": [
+          "workflow/git",
+          "workflow/jira",
+          "workflow/excalidraw"
+        ]
+      },
+      {
+        "group": "Backend",
+        "icon": "gear",
+        "pages": [
+          "backend/overview",
+          "backend/services",
+          "backend/repositories",
+          "backend/authentication-flow",
+          "backend/deployment"
+        ]
+      },
+      {
+        "group": "Frontend",
+        "icon": "display",
+        "pages": [
+          "frontend/overview",
+          "frontend/pages",
+          "frontend/voting-flow",
+          "frontend/api-integration",
+          "frontend/state-management"
+        ]
+      },
+      {
+        "group": "Database",
+        "icon": "database",
+        "pages": [
+          "database/schema",
+          "database/migrations",
+          "database/security-rules"
+        ]
+      },
+      {
+        "group": "Cryptography",
+        "icon": "key",
+        "pages": [
+          "crypto/protocol",
+          "crypto/blind-signature",
+          "crypto/rsa",
+          "crypto/hashing",
+          "crypto/threat-model"
+        ]
+      },
+      {
+         "group": "API Reference",
+         "icon": "plug",
+         "pages": [
+         "api/endpoints",
+         "api/authentication",
+         "api/errors",
+         "api/schemas"
+        ]
+      },
+      {
+        "group": "Team",
+        "icon": "users",
+        "pages": [
+          "team/roles",
+          "team/rulebook"
+        ]
+      }
+    ]
+  },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "GitHub",
+        "href": "https://github.com/secure-evoting"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Architecture",
+      "href": "/architecture"
     }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/secure-evoting"
     }
   }
 }

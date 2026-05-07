@@ -1,0 +1,111 @@
+---
+title: Introduction
+description: CryptoVote, a cryptographically secure electronic voting system built at ENSTA Alger.
+---
+
+CryptoVote is an academic full-stack electronic voting system developed at **Ecole Nationale Supérieure des Technologies Avancées (ENSTA Alger)** as part of the **Applied Cryptography** module under the supervision of **Mrs. Souad KHERROUBI**.
+
+The project explores how modern cryptographic techniques can be used to design an electronic voting protocol that guarantees both:
+- voter eligibility verification,
+- and ballot anonymity.
+
+At its core, CryptoVote addresses one of the fundamental challenges of electronic democracy:
+
+**verifying who is allowed to vote without revealing how they voted.**
+
+The system combines cryptographic primitives, strict role separation, and controlled information flow to ensure that no single entity can independently compromise the integrity or anonymity of the election.
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Explore the multi-service system architecture and role separation model.
+  </Card>
+
+  <Card title="Security Model" icon="shield" href="/security-model">
+    Understand the anonymity guarantees and attack prevention mechanisms.
+  </Card>
+</CardGroup>
+
+---
+
+## Cryptographic Foundations
+
+The protocol is built on four core cryptographic primitives:
+
+| Primitive | Purpose |
+|---|---|
+| **RSA Public-Key Cryptography** | Ballot encryption and digital signatures |
+| **Digital Signatures** | Ballot authenticity verification |
+| **Blind Signatures** | Anonymous ballot authentication |
+| **Hash Functions** | Secure voter code verification |
+
+<Note>
+Blind signatures allow the Administrator to authenticate a ballot without learning its contents, forming the foundation of the system’s anonymity model.
+</Note>
+
+---
+
+## System Roles
+
+CryptoVote separates responsibilities across five logical services:
+
+| Service | Primary Responsibility |
+|---|---|
+| **Voting System** | Credential generation and verification |
+| **Commissioner** | Voter eligibility validation |
+| **Administrator** | Blind signature generation |
+| **Anonymizer** | Anonymous ballot collection |
+| **Counter** | Ballot decryption and counting |
+
+This separation ensures that no single service has enough information to link a voter identity to a decrypted ballot.
+
+---
+
+## Election Lifecycle
+
+A complete election proceeds through three main phases:
+
+#### 1. Initialization
+Voter credentials are generated and distributed securely.
+#### 2. Voting
+Voters authenticate, blind their ballots, obtain signatures, encrypt their votes, and submit them anonymously.
+#### 3. Counting
+Encrypted ballots are validated, decrypted, and counted while preserving voter anonymity.
+
+---
+
+## Project Scope
+
+CryptoVote is implemented as a full-stack system composed of:
+- a React/Next.js frontend,
+- a FastAPI backend,
+- cryptographic service modules,
+- and a PostgreSQL-based persistence layer.
+
+The project also includes:
+- deployment infrastructure,
+- environment management,
+- database migration workflows,
+- Jira-based team coordination,
+- and strict Git governance rules.
+
+---
+
+## Continue Reading
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="server" href="/architecture">
+    Service responsibilities, communication flow, and deployment topology.
+  </Card>
+
+  <Card title="Infrastructure" icon="globe" href="/infra/overview">
+    GitHub, Render, Vercel, Neon, and environment configuration.
+  </Card>
+
+  <Card title="Cryptographic Protocol" icon="key" href="/crypto/protocol">
+    Complete protocol lifecycle including blind signature operations.
+  </Card>
+
+  <Card title="Team Workflow" icon="users" href="/workflow/jira">
+    Sprint organization, Git workflow, Jira states, and collaboration rules.
+  </Card>
+</CardGroup>

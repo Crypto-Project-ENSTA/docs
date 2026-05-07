@@ -1,0 +1,49 @@
+---
+title: Neon
+description: Serverless PostgreSQL provider for CryptoVote's DEV and PROD deployed databases.
+---
+
+Neon is a serverless PostgreSQL provider. It supplies two fully isolated databases for this project , one for DEV, one for PROD. Neon is never used for local development.
+
+---
+
+## Two Databases
+
+| Database | Used By | Purpose |
+|---|---|---|
+| **Neon DEV** | Render DEV service | Integration and staging data |
+| **Neon PROD** | Render PROD service | Real election data |
+
+---
+
+## Local Development
+
+Local development uses **SQLite**, not Neon. The backend detects the database type automatically from `DATABASE_URL` and applies the correct engine configuration.
+
+```python
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
+```
+
+<Note>
+The `DATABASE_URL` environment variable is the single source of truth for the database connection across all environments. It is never hardcoded in source code.
+</Note>
+
+---
+
+## Critical Rules
+
+<Warning>
+DEV and PROD Neon databases are never mixed. They have different connection strings and are connected to different Render services. Connecting DEV to the PROD database , or vice versa , causes data corruption.
+</Warning>
+
+<Warning>
+No developer has direct access to the PROD database during development. All schema changes go through Alembic migrations , never manual SQL on any Neon database.
+</Warning>
+
+- Do not run load tests or bulk inserts against Neon
+- Never run `ALTER TABLE` or `CREATE TABLE` manually on any deployed database
+- DEV and PROD must always be at the same migration version before integration testing
+- All schema changes are committed as Alembic migration files , see [Migrations](/database/migrations)

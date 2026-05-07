@@ -1,0 +1,124 @@
+---
+title: Roles
+description: Module ownership, responsibilities, and task distribution across the CryptoVote team.
+---
+
+CryptoVote is built by a team of five engineers at ENSTA Alger. Ownership is divided by system layer, not by feature. Each member owns a specific set of modules end-to-end and is the single point of authority for any change to those modules.
+
+---
+
+## Team Overview
+
+| Member | Primary Role | Owned Modules |
+|---|---|---|
+| **Akram** | Frontend lead, merge authority | All React components, API integration layer |
+| **Walid** | Backend lead, merge authority | All 5 services, all API routes, FastAPI config, CORS |
+| **Sophia** | Data layer | All 4 DB models, Pydantic schemas, migrations |
+| **Amal** | Cryptography | `rsa_utils`, `blind_signature`, `hash_utils`, `key_manager` |
+| **Maylis** | Frontend UI/UX, documentation | Landing, Verify, Results pages, Mintlify docs site |
+
+<Note>
+Only Akram and Walid have merge permissions on `dev` and `main`. This is enforced at the repository level in GitHub settings, not by team agreement.
+</Note>
+
+---
+
+## Akram
+
+Akram owns the entire frontend repository and is responsible for all React component architecture and the API integration layer. Every API call from the frontend goes through `api.js`, which he owns and maintains. He is one of two people authorized to approve and merge pull requests into `dev` and `main`.
+
+| | |
+|---|---|
+| **Owns** | Frontend repo, all React components, `api.js` service layer |
+| **Uses** | All GET and POST endpoints via the API layer |
+| **Merge authority** | `dev` and `main` |
+
+---
+
+## Walid
+
+Walid owns the entire backend service layer. This includes all five logical services, all FastAPI route definitions, CORS configuration, and the overall backend application structure. He is the second person authorized to merge pull requests.
+
+| | |
+|---|---|
+| **Owns** | All 5 services, all API routes, FastAPI config, CORS |
+| **Uses** | `credential_repository`, `vote_repository`, `counted_vote_repository`, all crypto modules |
+| **Merge authority** | `dev` and `main` |
+
+---
+
+## Sophia
+
+Sophia owns everything that touches the database. This means all four SQLAlchemy models, all three repository classes, all Pydantic schemas, and every Alembic migration file. No schema change goes into the codebase without her involvement. She is the only person who generates or modifies migration files.
+
+| | |
+|---|---|
+| **Owns** | All 3 repositories, all 4 DB models, Pydantic schemas, all migrations |
+| **Uses** | SQLAlchemy ORM, `DATABASE_URL`, all 4 database tables |
+
+The four tables under her ownership:
+
+| Table | Managed by service |
+|---|---|
+| `voters` | `voting_system_service` |
+| `credentials` | `commissioner_service` |
+| `votes` | `anonymizer_service` |
+| `counted_votes` | `counter_service` |
+
+<Warning>
+No migration file is generated or modified without Sophia's approval. Schema changes must be discussed with her before implementation.
+</Warning>
+
+---
+
+## Amal
+
+Amal owns all cryptographic logic in the project. Every function that performs RSA operations, blind signature steps, hashing, or key management lives in `app/crypto/` and is written and maintained by her. No other module imports cryptography libraries directly.
+
+| | |
+|---|---|
+| **Owns** | `rsa_utils`, `blind_signature`, `hash_utils`, `key_manager` |
+| **Called by** | `administrator_service`, `counter_service`, `voting_system_service` |
+
+| Module | Responsibility |
+|---|---|
+| `rsa_utils` | RSA keypair generation, RSA-OAEP encryption/decryption, RSA-PSS signing/verification |
+| `blind_signature` | Blinding factor generation, message blinding, blind signing, unblinding, verification |
+| `hash_utils` | SHA-256 hashing for N2, TTH hash for subject exercises only |
+| `key_manager` | PEM keypair generation, private and public key loading from disk |
+
+<Warning>
+All `print()` statements and debug logs must be removed from every file inside `app/crypto/` before pushing any branch. A PR containing debug output in crypto modules will be rejected.
+</Warning>
+
+---
+
+## Maylis
+
+Maylis owns the user-facing pages of the frontend: the landing page, the vote verification page, and the results page. She works within the component and API structure maintained by Akram, using `api.js` for all backend calls. She also owns the Mintlify documentation site.
+
+| | |
+|---|---|
+| **Owns** | Landing page, Verify page, Results page, UI/UX components |
+| **Uses** | `api.js` service layer |
+| **Additional** | Mintlify documentation site |
+
+---
+
+## Permission Matrix
+
+| Action | Akram | Walid | Sophia | Amal | Maylis |
+|---|---|---|---|---|---|
+| Merge PR into `dev` | Yes | Yes | No | No | No |
+| Merge `dev` into `main` | Yes | Yes | No | No | No |
+| Push to `feature/*` | Yes | Yes | Yes | Yes | Yes |
+| Open a PR | Yes | Yes | Yes | Yes | Yes |
+| Review a PR | Yes | Yes | Yes | Yes | Yes |
+
+---
+
+<CardGroup cols={1}>
+  <Card title="Rulebook" icon="book" href="/team/rulebook">
+    The full mandatory rulebook covering every workflow rule in the project.
+  </Card>
+</CardGroup>

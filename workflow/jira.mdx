@@ -1,0 +1,78 @@
+---
+title: Jira Workflow
+description: Sprint structure, task lifecycle, and board conventions for CryptoVote.
+---
+
+All development tasks are tracked in Jira. Every task follows a strict lifecycle — no shortcuts.
+
+---
+
+## Sprint Structure
+
+The team works in weekly sprints. Each sprint contains tasks defined at the sprint planning meeting.
+
+Every week the team holds one mandatory meeting:
+- Close the current sprint and review what was done
+- Plan the next sprint and assign tasks
+
+---
+
+## Branch Creation from Jira
+
+Branches are created directly from the Jira task — never manually from the terminal.
+
+<Warning>The branch name is automatically set by Jira from the task title. Do not rename it.</Warning>
+
+```
+feature/<jira-task-title>
+bugfix/<jira-task-title>
+```
+
+All branches are created from `dev`.
+
+---
+
+## Task States
+
+| State | Meaning |
+|---|---|
+| `TO DO` | Created, not yet started |
+| `IN PROGRESS` | Developer actively working on the branch |
+| `BLOCKED` | Work paused — written comment required |
+| `TESTING` | PR opened, under review |
+| `TO REVIEW` | Issue found — needs peer review |
+| `CANCEL` | Abandoned — written justification required |
+| `DONE` | Merged to `dev`, signed off by Akram or Walid |
+
+---
+
+## Transition Rules
+
+| Transition | Trigger |
+|---|---|
+| `TO DO` → `IN PROGRESS` | Developer starts, branch created from Jira |
+| `IN PROGRESS` → `BLOCKED` | Blocker encountered — comment required |
+| `IN PROGRESS` → `TESTING` | PR opened, link posted in Jira task |
+| `BLOCKED` → `TO DO` | Blocker resolved |
+| `BLOCKED` → `CANCEL` | No solution — justification required |
+| `TESTING` → `TO REVIEW` | Issue or failing test found |
+| `TESTING` → `DONE` | All tests pass, PR merged to `dev` |
+| `TO REVIEW` → `TO DO` | Review requires fixes |
+
+---
+
+## Rules
+
+<Warning>A task cannot move to `TESTING` without a GitHub PR link attached.</Warning>
+
+<Warning>A task cannot be marked `DONE` without Akram's or Walid's approval.</Warning>
+
+- A `BLOCKED` task must have a written comment explaining the blocker
+- A `CANCEL` task must have a written justification
+- Every PR description must reference its Jira task ID
+
+---
+
+## Board Overview
+
+![Jira Board](/images/jira-board.png)

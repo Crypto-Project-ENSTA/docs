@@ -1,0 +1,79 @@
+---
+title: Render
+description: How the FastAPI backend is hosted, deployed, and configured across DEV and PROD environments.
+---
+
+Render hosts the FastAPI Python backend. Like Vercel, it is connected directly to the `evoting-backend` GitHub repository and deploys automatically on every push to `dev` or `main`.
+
+---
+
+## Two Deployed Services
+
+| Service | Connected Branch | URL | Database |
+|---|---|---|---|
+| **DEV** | `dev` | `https://evotingdev.onrender.com` | Neon DEV |
+| **PROD** | `main` | `https://evotingmain.onrender.com` | Neon PROD |
+
+---
+
+## Startup Command
+
+On every deploy, Render runs the following command before the server starts:
+
+```bash
+alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+This applies any pending database migrations automatically. Migrations never need to be run manually on deployed environments.
+
+---
+
+## When to Use Render vs Local
+
+<Warning>
+Render is not a development environment. Use your local backend for all development and unit testing.
+</Warning>
+
+| Scenario | Environment |
+|---|---|
+| Developing backend logic | Local (SQLite) |
+| Unit testing services and crypto | Local (SQLite) |
+| Testing frontend ↔ backend integration | Render DEV |
+| Final verification before merging | Render DEV |
+| Production traffic | Render PROD |
+
+---
+
+## Environment Variables
+
+Each service has its own isolated variables configured in the Render dashboard , never in committed files.
+
+| Variable | DEV | PROD |
+|---|---|---|
+| `DATABASE_URL` | Neon DEV connection string | Neon PROD connection string |
+| `SECRET_KEY` | Generated secure key | Generated secure key (different) |
+| `ALLOWED_ORIGINS` | `https://evotingdev.vercel.app` | `https://evotingmain.vercel.app` |
+
+<Warning>
+`ALLOWED_ORIGINS` must match the frontend URL exactly for each environment. No wildcards in production. A mismatch blocks every API call from the frontend.
+</Warning>
+
+---
+
+## Cold Starts
+
+Render's free tier spins down services after a period of inactivity. The first request after a cold start may take **20–30 seconds**.
+
+<Note>
+This is expected behavior , do not mistake it for a bug or a failed deployment. Do not spam requests to wake the service up faster.
+</Note>
+
+---
+
+## Free Tier Considerations
+
+<Warning>
+Do not develop backend logic directly on Render. It wastes free tier request limits and creates an uncontrolled environment outside the local → DEV → PROD flow.
+</Warning>
+
+If Render's free tier limits are reached, GitHub Actions is the fallback CI/CD option.

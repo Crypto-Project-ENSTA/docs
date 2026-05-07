@@ -1,0 +1,131 @@
+---
+title: Threat Model
+description: Attack scenarios, protocol-level mitigations, and the limits of the CryptoVote security model.
+---
+
+CryptoVote was designed around a specific adversarial assumption: any one of the four internal entities (Commissioner, Administrator, Anonymizer, Counter) may be fully compromised, and the election must still be impossible to manipulate or deanonymize. This page documents the concrete threats the protocol addresses, how each is mitigated, and what residual risks remain.
+
+---
+
+## Security Objectives
+
+Before enumerating threats, these are the properties the protocol must satisfy. Every mitigation described below maps back to at least one of these objectives.
+
+| Objective | Definition |
+|---|---|
+| **Eligibility** | Only voters who received a valid N1/N2 pair can cast a ballot |
+| **Anonymity** | No party can link a decrypted ballot to the voter who submitted it |
+| **Confidentiality** | Ballot content remains encrypted until the counting phase begins |
+| **Integrity** | No ballot can be modified, forged, or injected after submission |
+| **Non-duplication** | A voter cannot have their ballot counted more than once |
+| **Verifiability** | Any voter can confirm their vote was counted by submitting N2 post-election |
+| **Distributed trust** | No single service controls enough information to compromise the election alone |
+
+---
+
+## Threat 1: Vote Forgery
+
+An external attacker, or an internal entity, attempts to inject a ballot without holding a valid N1 and N2 pair.
+
+Without N1, the Anonymizer rejects the submission before it is stored. Without N2, the ballot fails validation during counting: the Counter extracts N2 from the decrypted ballot, sends it to the Voting System for hashing, and the Commissioner checks that `hash(N2)` exists in its list of valid fingerprints. A forged N2 produces a hash that is not in that list.
+
+The probability of randomly guessing a valid N1 or N2 is approximately `10^-12` for a population of one million voters, making brute force completely infeasible.
+
+<Warning>
+Calling hash functions from any service other than the Voting System is a protocol violation. Centralizing all hashing in one service ensures no other entity can pre-compute or manipulate fingerprints.
+</Warning>
+
+---
+
+## Threat 2: Double Voting
+
+A voter attempts to cast more than one ballot using the same credentials.
+
+N1 is invalidated atomically by the Commissioner the moment the Anonymizer submits a vote. The invalidation uses a transaction-safe `UPDATE` that sets `used = TRUE`, so concurrent submissions with the same N1 cannot both succeed. On the counting side, the `UNIQUE` constraint on `hash_n2` in the `counted_votes` table means that even if two ballots carrying the same N2 reached the Counter, only the first insert would succeed.
+
+---
+
+## Threat 3: Ballot Tampering
+
+An attacker intercepts a ballot in transit and modifies its content before it reaches the Anonymizer or Counter.
+
+Every ballot is signed by the Administrator using RSA-PSS before submission. The Counter verifies this signature against the Administrator's public key before processing any ballot. A tampered ballot fails signature verification and is discarded. Because the Administrator signs the ballot while it is still blinded, it has no knowledge of the content, but the signature is still cryptographically bound to the exact message the voter constructed.
+
+---
+
+## Threat 4: Replay Attack
+
+An attacker captures a valid encrypted ballot and resubmits it to the Anonymizer after the original voter has already voted.
+
+The Anonymizer forwards N1 to the Commissioner for validation before storing any vote. Since N1 was already invalidated during the original submission, the Commissioner rejects the replayed request. Even if the attacker bypassed the Anonymizer entirely and submitted directly to the Counter, the `UNIQUE` constraint on `hash_n2` would block the duplicate from being counted.
+
+---
+
+## Threat 5: Internal Entity Compromise
+
+This is the most nuanced threat category. The protocol does not assume the four entities are trustworthy. It assumes any one of them may be adversarial, and structures information flow so that a single compromised entity cannot break the election.
+
+**Commissioner compromised.** The Commissioner holds N1 codes and `hash(N2)` fingerprints. It has no contact with the voter directly and never receives vote content. It cannot construct a valid ballot because it does not know N2 in plaintext, only its hash. It cannot link a ballot to a voter because it never sees encrypted or decrypted votes.
+
+**Administrator compromised.** The Administrator sees N1 validity results and signs blinded ballots. When the voter presents their ballot for signing, it has already been masked with a blinding factor `k`. The Administrator computes `m'' = (m')^d mod N` without knowing `m`. Even after the election, when N2/vote pairs are published, the Administrator cannot match them to any blinded message it signed because the blinding factor was chosen by the voter and never revealed.
+
+**Anonymizer compromised.** The Anonymizer receives N1 and an encrypted ballot (encrypted with the Counter's public key). It cannot decrypt the ballot. After the election, when N2/vote pairs are published, it cannot correlate them with the encrypted submissions it received because the ballot includes random bits added before encryption, making every ciphertext unique even for identical votes.
+
+**Counter compromised.** The Counter decrypts all ballots and knows both N2 and the vote content for each ballot. It cannot link a ballot to a voter's identity because the submission path went through the Anonymizer, which stripped the identity association. The Counter could attempt to modify vote tallies, but the voting period is closed before counting begins and the Administrator no longer signs any messages, so the Counter cannot generate new valid ballots to substitute.
+
+<Note>
+The "no single entity can compromise the system" guarantee is structural, not a policy. It emerges from the information partitioning built into the protocol design, not from access controls or trust agreements.
+</Note>
+
+---
+
+## Threat 6: N2 Exposure
+
+If N2 were stored in plaintext in any database table, a compromised database would allow an attacker to construct valid ballots for any voter who had not yet voted.
+
+N2 is never written to disk. The Voting System generates it in memory, sends it to the voter by email, computes `hash(N2)`, transmits the hash to the Commissioner, and immediately discards N2. The Commissioner stores only the fingerprint. During counting, the Counter extracts N2 from a decrypted ballot and sends it to the Voting System, which hashes it on the fly and returns the hash. N2 never touches the database at any point in its lifecycle.
+
+<Warning>
+Storing N2 in plaintext in any database table is a zero-tolerance violation. It directly enables ballot forgery and constitutes a full security breach.
+</Warning>
+
+---
+
+## Threat Summary
+
+| Attack | Prevented by |
+|---|---|
+| Vote forgery | N1/N2 validation chain, `hash(N2)` fingerprint check |
+| Double voting | Atomic N1 invalidation, `UNIQUE` constraint on `hash_n2` |
+| Ballot tampering | RSA-PSS signature verification by Counter |
+| Replay attack | N1 already invalidated, `UNIQUE` constraint on `hash_n2` |
+| Voter deanonymization | Blind signatures, random ballot bits, role separation |
+| N2 reconstruction | One-way hash function (preimage resistance) |
+| Single entity attack | Information partitioning across five services |
+
+---
+
+## Residual Risks
+
+CryptoVote reduces the attack surface significantly, but cryptographic correctness alone is not sufficient. The following operational risks are outside the scope of the protocol itself and depend on correct infrastructure and deployment practices.
+
+Private keys for the Administrator and Counter are stored as PEM files managed by `key_manager`. If these files are exposed, an attacker could forge ballot signatures or decrypt all submitted ballots. Key storage security is an operational concern, not a protocol concern.
+
+The protocol also assumes the voter's device is not compromised. If the voting software running in the browser is replaced or tampered with, the blinding factor could be leaked to the Administrator before masking, breaking ballot anonymity at the client level.
+
+Finally, the Neon PROD database should never be accessible to developers during active development. A misconfigured `DATABASE_URL` pointing a development service at the production database could corrupt real election data.
+
+<CardGroup cols={2}>
+  <Card title="Cryptographic Protocol" icon="shield" href="/crypto/protocol">
+    Complete four-phase protocol flow with service roles and pseudocode.
+  </Card>
+  <Card title="Blind Signatures" icon="key" href="/crypto/blind-signature">
+    The masking formula, signing step, unblinding proof, and verification.
+  </Card>
+  <Card title="Security Model" icon="lock" href="/security-model">
+    System-wide security guarantees and role separation matrix.
+  </Card>
+  <Card title="Database Security Rules" icon="database" href="/database/security-rules">
+    N2 lifecycle, migration rules, and access restrictions.
+  </Card>
+</CardGroup>
