@@ -1,12 +1,77 @@
 ---
-title: Environments
-description: Environment configuration reference.
+title: "Environments"
+description: "Local, DEV, and PROD environment configuration — URLs, databases, and deployment triggers."
 ---
 
-<Note>
-Environment configuration is covered where it belongs:
-- Local, DEV, and PROD overview → [Infrastructure Overview](/infra/overview)
-- Frontend environment variables → [Vercel](/infra/vercel)
-- Backend environment variables → [Render](/infra/render)
-- Database per environment → [Neon](/infra/neon)
-</Note>
+CryptoVote runs across three environments: a local development environment on each developer's machine, a shared DEV environment deployed automatically from the `dev` branch, and the PROD environment deployed from `main` and used for the actual election.
+
+---
+
+## Environment overview
+
+| Environment | Frontend URL | Backend URL | Database | Deploy trigger |
+|---|---|---|---|---|
+| Local | `http://localhost:5173` | `http://localhost:8000` | Local PostgreSQL | Manual (`uvicorn`, `npm run dev`) |
+| DEV | `https://evoting-dev.vercel.app` | `https://evoting-dev.onrender.com` | Neon dev branch | Push to `dev` |
+| PROD | `https://evoting-main.vercel.app` | `https://evoting-main.onrender.com` | Neon main branch | Push to `main` |
+
+---
+
+## Local environment
+
+Set up your local environment by following the [Backend Quickstart](/backend/quickstart). The frontend runs on Vite at port 5173 by default and the backend on uvicorn at port 8000.
+
+Your `.env.local` file for the frontend should point to the local backend:
+
+```bash
+VITE_API_URL=http://localhost:8000
+```
+
+Your `.env.local` file for the backend should point to your local PostgreSQL instance:
+
+```bash
+DATABASE_URL=postgresql://user:password@localhost:5432/evoting
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+```
+
+---
+
+## DEV environment
+
+The DEV environment is the shared integration environment. It is deployed automatically when a pull request is merged into the `dev` branch on GitHub. All team members test features here before promoting to PROD.
+
+```bash
+# Frontend .env (Vercel DEV project)
+VITE_API_URL=https://evoting-dev.onrender.com
+
+# Backend environment variables (Render DEV service)
+DATABASE_URL=<neon dev branch connection string>
+ALLOWED_ORIGINS=https://evoting-dev.vercel.app
+```
+
+---
+
+## PROD environment
+
+The PROD environment is deployed automatically when `dev` is merged into `main`. It is the live election system. Only stable, reviewed code reaches `main`.
+
+```bash
+# Frontend .env (Vercel PROD project)
+VITE_API_URL=https://evoting-main.onrender.com
+
+# Backend environment variables (Render PROD service)
+DATABASE_URL=<neon main branch connection string>
+ALLOWED_ORIGINS=https://evoting-main.vercel.app
+```
+
+---
+
+## Promotion flow
+
+```mermaid
+flowchart LR
+    Local["Local\nlocalhost"] -->|"open PR to dev"| DEV["DEV\nevoting-dev.*"]
+    DEV -->|"open PR to main"| PROD["PROD\nevoting-main.*"]
+```
+
+Feature branches are created from `dev`, reviewed via PR, and merged into `dev` for integration testing. Once the team signs off on the DEV environment, a PR is opened from `dev` to `main` to promote to production.

@@ -1,9 +1,9 @@
 ---
 title: "Casting a Vote"
-description: "Walk through the 3-step voting process: authenticate with N1, select a candidate, and submit your encrypted ballot with your 12-character N2 verification code."
+description: "Walk through the 2-step voting process: authenticate with N1, then select a candidate and submit your ballot with your N2 verification code."
 ---
 
-Voting in Evoting is a three-step process designed to confirm your eligibility, protect your anonymity, and give you a receipt you can use to verify your ballot later. All steps happen at `/vote` through a guided stepper interface.
+Voting in Evoting is a two-step process. All steps happen at `/vote` through a guided stepper interface.
 
 ## Prerequisites
 
@@ -16,8 +16,7 @@ Before you can vote, make sure:
 
 ```mermaid
 flowchart LR
-    A["Step 1\nEnter N1\nPOST /voters/check_n1"] --> B["Step 2\nSelect candidate\nEnter N2\nPOST /voters/submit_vote"]
-    B --> C["Step 3\nVoteSubmitted\nconfirmation screen"]
+    A["Step 1\nEnter N1\nPOST /voters/check_n1"] --> B["Step 2\nSelect candidate\nEnter N2\nPOST /voters/submit_vote\nVoteSubmitted screen"]
 ```
 
 **Step 1 — Authentication**
@@ -31,19 +30,15 @@ Each N1 code can only be used once to open an authenticated voting session. Do n
 
 **Step 2 — Submit your vote**
 
-Select your preferred candidate from the list of available choices, then enter your **N2 code** in the verification field. When you click **Submit**, your ballot is blind-signed and encrypted before it is sent to `POST /voters/submit_vote`. This means the server signs your ballot without learning which candidate you chose — only the encrypted ballot reaches the administrator. On success, you advance to Step 3.
-
-**Step 3 — Confirmation**
-
-The confirmation screen (VoteSubmitted) appears to let you know your ballot was received. Your voting session is saved in localStorage so you can return to this screen if you accidentally close the tab. Your N2 code is what you will use later to verify your ballot was counted. Keep it safe.
+Select your preferred candidate from the list of available choices, then enter your **N2 code** in the verification field. When you click **Submit**, your ballot is sent to `POST /voters/submit_vote`. The backend handles signing and encryption on your behalf. On success, the VoteSubmitted confirmation screen is shown immediately on the same page.
 
 ## Session persistence
 
-Your vote session is persisted in localStorage under the key `vote-session`. If you close the browser tab after completing Step 3, you can reopen `/vote` and your confirmation screen will still be shown. The session stores your current step, your N1 value, and navigation helpers.
+Your vote session is persisted in localStorage under the key `vote-session`. If you close the browser tab after completing Step 2, you can reopen `/vote` and your confirmation screen will still be shown. The session stores your current step, your N1 value, and navigation helpers.
 
 ## Security model
 
-Your vote content is hidden from the election administrator through **blind signatures**. When you submit your ballot, the system encrypts your vote and has it signed in a way that the signer cannot read the content. Only the encrypted, signed ballot is transmitted.
+The cryptographic protocol — blind signing, RSA encryption, and anonymization — is handled server-side by the backend. Your N1 code proves you are eligible to vote. Your N2 code is embedded in your ballot and is how you verify your vote was counted after the election ends. Keep your N2 code safe.
 
 ## If voting is unavailable
 

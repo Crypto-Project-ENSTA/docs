@@ -3,13 +3,13 @@ title: "Architecture"
 description: "The four-entity trust model and how the frontend fits into the full voting system."
 ---
 
-The frontend is a Next.js 16 application deployed on Vercel. It is the only surface voters and admins interact with directly. All cryptographic operations triggered by the voter — blinding a ballot, unblinding a signature, encrypting the final ciphertext — happen in the browser before anything is sent to the server.
+The frontend is a Next.js 15 application deployed on Vercel. It is the only surface voters and admins interact with directly. The cryptographic voting protocol is handled server-side by the backend — the browser's role is to collect voter input, communicate with the API, and display results.
 
 ## Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 16, App Router |
+| Framework | Next.js 15, App Router |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 |
 | Components | shadcn/ui + Radix UI |
@@ -58,7 +58,7 @@ src/
 │   └── admin/            # /admin dashboard
 ├── components/
 │   ├── Admin/            # VoteControls, ConfigEditor, AdminResults
-│   ├── Voter/            # registration form, ballot stepper, confirmation
+│   ├── Vote/             # AuthStep, VoteStep, VoteStepper, VoteNotStarted, VoteEnded
 │   └── ui/               # shared shadcn/ui primitives
 ├── hooks/                # one TanStack Query hook per API resource
 ├── lib/                  # Axios instance, crypto helpers
@@ -85,25 +85,21 @@ stateDiagram-v2
 
 ---
 
-## Where in-browser crypto happens
+## How voting works in the current implementation
 
-The backend never sees a plaintext ballot. By the time any ballot data leaves the browser it has been blinded, signed, unblinded, and encrypted — in that order.
+The browser collects the voter's N1 and N2 codes and their candidate choice, then sends them to the backend over HTTPS. The backend handles the full cryptographic protocol — blind signing, RSA encryption, anonymization, and counting — server-side.
 
 ```mermaid
 sequenceDiagram
     participant Browser
     participant Backend
 
-    Browser->>Browser: assemble ballot (vote, N2, random_bits)
-    Browser->>Browser: pick random k, compute m' = m * k^e mod N_admin
-    Browser->>Backend: POST /voters/check_n1
-    Backend-->>Browser: eligibility confirmed
-    Browser->>Backend: send blinded ballot m'
-    Backend-->>Browser: blind signature s'
-    Browser->>Browser: unblind: s = s' * k^-1 mod N_admin
-    Browser->>Backend: GET /vote/public-key
-    Backend-->>Browser: (e_counter, N_counter)
-    Browser->>Browser: encrypt: C = s^e_counter mod N_counter
-    Browser->>Backend: POST /voters/submit_vote (C)
-    Backend-->>Browser: accepted
+    Browser->>Backend: POST /voters/check_n1 {n1}
+    Backend-->>Browser: {is_N1_exist: true}
+    Browser->>Backend: POST /voters/submit_vote {n1, vote, n2}
+    Backend-->>Browser: {signed_ballot: s'}
+    Browser->>Backend: POST /voters/submit_encrypted_vote {encrypted_vote}
+    Backend-->>Browser: {status: "accepted"}
 ```
+
+The blind signature protocol described in the [Cryptographic Protocol](/backend/cryptographic-protocol) page is the intended final design. In the current implementation, the backend performs the blinding, signing, and encryption operations on behalf of the voter.

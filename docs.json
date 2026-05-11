@@ -41,15 +41,6 @@
         ]
       },
       {
-        "group": "Frontend Security",
-        "icon": "lock",
-        "pages": [
-          "frontend/security/overview",
-          "frontend/security/blind-signatures",
-          "frontend/security/vote-flow"
-        ]
-      },
-      {
         "group": "Backend",
         "icon": "gear",
         "pages": [
@@ -78,6 +69,7 @@
         "pages": [
           "crypto/protocol",
           "crypto/blind-signature",
+          "crypto/vote-flow",
           "crypto/rsa",
           "crypto/hashing",
           "crypto/roles-formulas",

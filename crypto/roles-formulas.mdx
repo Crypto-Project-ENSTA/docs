@@ -1,0 +1,330 @@
+---
+title: "Roles and Formulas"
+description: "Every cryptographic formula used in the protocol, organized by role, with full mathematical justification and numerical proofs from the course exercises."
+sidebarTitle: "Roles and Formulas"
+---
+
+Every formula in this protocol serves one purpose: making sure each role can do its job — and only its job.
+
+Written by **Bouterbag Amal — Group 1**.
+
+---
+
+## Protocol roles at a glance
+
+| Role | Tools used |
+|---|---|
+| Voter | RSA Encryption + Blind Signature |
+| Administrator | RSA Digital Signature (Blind) |
+| Commissioner | Hash Function (TTH / SHA-256) |
+| Anonymizer | None (organizational role) |
+| Counter | RSA Decryption + Signature Verification |
+
+---
+
+## The Voter
+
+The voter uses two cryptographic operations: a blind signature to get the ballot authenticated anonymously, and RSA encryption to seal the vote for the Counter.
+
+### Blind Signature
+
+**The problem:** The voter needs the Administrator's signature on the ballot to prove it is legitimate. But if the Administrator sees the ballot, voter anonymity is broken.
+
+**The solution:** The voter blinds the ballot before sending it. The Administrator signs without ever seeing the real content.
+
+**Step 1 — Choose a blinding factor $k$**
+
+The voter picks a random integer $k$ such that $\gcd(k, N_{admin}) = 1$.
+
+This condition ensures $k$ has a modular inverse $k^{-1}$, which is needed later to remove the blinding. Without it, the unblinding step would be impossible.
+
+From the exercise: $k = 7$, and $\gcd(7, 55) = 1$ ✓
+
+**Step 2 — Blind the ballot**
+
+$$m' = m \cdot k^{e_{admin}} \pmod{N_{admin}}$$
+
+- $m$ = the ballot (vote + $N_2$ + random bits)
+- $k^{e_{admin}}$ = the blinding mask, computed using the Admin's public key
+- $m'$ = the blinded message sent to the Administrator
+
+The Administrator only receives $m'$. They cannot recover $m$ from it because doing so would require breaking RSA (factoring $N_{admin}$), which is computationally infeasible.
+
+Numerical proof ($m = 8$, $k = 7$, $e = 27$, $N = 55$):
+
+First compute $k^e = 7^{27} \pmod{55}$ using repeated squaring:
+
+| Power | Calculation | Result mod 55 |
+|---|---|---|
+| $7^1$ | 7 | 7 |
+| $7^2$ | $49$ | 49 |
+| $7^4$ | $49^2 = 2401$ | 36 |
+| $7^8$ | $36^2 = 1296$ | 31 |
+| $7^{16}$ | $31^2 = 961$ | 26 |
+
+Since $27 = 16 + 8 + 2 + 1$:
+
+$$7^{27} = 26 \times 31 \times 49 \times 7 \equiv 28 \pmod{55}$$
+
+Then blind the ballot:
+
+$$m' = 8 \times 28 = 224 \equiv 4 \pmod{55}$$
+
+The voter sends $m' = 4$ to the Administrator. The real vote $m = 8$ is hidden.
+
+**Step 3 — The Administrator signs blindly**
+
+The Administrator returns $m'' = (m')^d \pmod{N}$.
+
+From the exercise: $m'' = 4^3 = 64 \equiv 9 \pmod{55}$
+
+**Step 4 — Unblind the signature**
+
+Once the voter receives $m''$, they remove the blinding factor using its modular inverse $k^{-1}$:
+
+$$s = m'' \cdot k^{-1} \pmod{N_{admin}}$$
+
+Why does this work? Expanding step by step:
+
+$$m'' = (m')^d = (m \cdot k^e)^d = m^d \cdot k^{ed} \pmod{N}$$
+
+By Euler's theorem, since $ed \equiv 1 \pmod{\varphi(N)}$, we have $k^{ed} \equiv k \pmod{N}$. Therefore:
+
+$$m'' = m^d \cdot k \pmod{N}$$
+
+Multiplying both sides by $k^{-1}$:
+
+$$s = m'' \cdot k^{-1} = m^d \cdot k \cdot k^{-1} = m^d \pmod{N}$$
+
+This is exactly the standard RSA signature of $m$. The blinding factor cancels perfectly.
+
+Numerical proof:
+
+Find $k^{-1} = 7^{-1} \pmod{55}$: we need $x$ such that $7x \equiv 1 \pmod{55}$.
+
+$$7 \times 8 = 56 = 55 + 1 \equiv 1 \pmod{55} \Rightarrow k^{-1} = 8$$
+
+Remove the blinding:
+
+$$s = 9 \times 8 = 72 \equiv 17 \pmod{55}$$
+
+The voter now holds $(m, s) = (8, 17)$ — a valid authenticated ballot.
+
+**Verification: is $s = 17$ a valid signature of $m = 8$?**
+
+Check the RSA verification condition: $s^e \equiv m \pmod{N}$
+
+$$17^{27} \pmod{55}$$
+
+Using repeated squaring: $17^2 \equiv 14$, $17^4 \equiv 31$, $17^8 \equiv 26$, $17^{16} \equiv 16$
+
+$$17^{27} = 16 \times 26 \times 14 \times 17 \equiv 8 \pmod{55} \checkmark$$
+
+The blind signature is valid. The Administrator signed $m = 8$ without ever knowing it.
+
+---
+
+### RSA Encryption
+
+Before sending the ballot to the Anonymizer, the voter encrypts it using the Counter's public key:
+
+$$C = m^{e_{counter}} \pmod{N_{counter}}$$
+
+Only the Counter — who holds the private key $d_{counter}$ — can decrypt it.
+
+Numerical proof ($m = 8$, $e_{counter} = 3$, $N_{counter} = 583$):
+
+$$C = 8^3 = 512 \pmod{583}$$
+
+Since $512 < 583$ no modular reduction is needed. The voter sends $C = 512$ to the Anonymizer. They see only a number — the vote content is completely hidden.
+
+---
+
+## The Administrator
+
+The Administrator uses RSA digital signature to authenticate ballots without knowing their content.
+
+### Blind signing formula
+
+$$m'' = (m')^{d_{admin}} \pmod{N_{admin}}$$
+
+- $d_{admin}$ = Administrator's private key
+- $m'$ = blinded message received from the voter
+- $m''$ = blind signature returned to the voter
+
+Numerical proof ($m' = 4$, $d = 3$, $N = 55$):
+
+$$m'' = 4^3 = 64 \equiv 9 \pmod{55}$$
+
+### Why the Administrator cannot cheat
+
+The blind signature formula guarantees:
+
+$$m'' = (m \cdot k^e)^d = m^d \cdot k^{ed} \equiv m^d \cdot k \pmod{N}$$
+
+The key step is $k^{ed} \equiv k \pmod{N}$. This follows from Euler's theorem: since $d \cdot e \equiv 1 \pmod{\varphi(N)}$, we can write $d \cdot e = 1 + t \cdot \varphi(N)$ for some integer $t$. Therefore:
+
+$$k^{ed} = k^{1 + t\varphi(N)} = k \cdot (k^{\varphi(N)})^t \equiv k \cdot 1^t = k \pmod{N}$$
+
+So after the voter unblinds: $s = m^d \pmod{N}$
+
+This means two things. First, the Administrator cannot deny having signed $m$, because $s = m^d$ is verifiable by anyone using the public key $e$. Second, the Administrator cannot identify which voter sent $m$, because they only ever saw the blinded version $m'$. Linkage between voter and vote is mathematically impossible.
+
+---
+
+## The Commissioner
+
+The Commissioner uses hash functions to store and verify $N_2$ credentials.
+
+### Hash function formula
+
+$$h = H(N_2)$$
+
+The Commissioner stores only the fingerprint $h$, never the actual $N_2$.
+
+### Pre-image resistance
+
+$$\text{Given } h = H(N_2) \Rightarrow \text{computationally infeasible to find } N_2 \text{ from } h$$
+
+Even if an attacker has the full list of stored hashes, they cannot reconstruct any $N_2$ and therefore cannot forge valid ballots.
+
+### TTH (Toy Tetragraph Hash)
+
+TTH processes the input in blocks of 4 characters. Each character is encoded as a number (letters: $A=0, B=1, \ldots, Z=25$; digits: face value). The transformation at each block is:
+
+$$\mathbf{v}_{new} = M \cdot (\mathbf{v}_{old} + \mathbf{b}) \pmod{26}$$
+
+Where $M$ is the fixed transformation matrix:
+
+$$M = \begin{pmatrix} 1&1&1&1 \\ 1&2&1&2 \\ 1&1&2&2 \\ 1&2&2&3 \end{pmatrix}$$
+
+Numerical proof from the exercise: $N_2 = \texttt{GH78IJ90KL12}$
+
+**Encoding:**
+
+| G | H | 7 | 8 | I | J | 9 | 0 | K | L | 1 | 2 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 6 | 7 | 7 | 8 | 8 | 9 | 9 | 0 | 10 | 11 | 1 | 2 |
+
+**Block 1:** $\mathbf{b}_1 = [6, 7, 7, 8]$, starting state $\mathbf{v}_0 = [0,0,0,0]$
+
+Add block: $\mathbf{v}_0 + \mathbf{b}_1 = [6, 7, 7, 8]$
+
+Apply $M$:
+
+$$v_1 = 6+7+7+8 = 28 \equiv 2 \pmod{26}$$
+$$v_2 = 6+14+7+16 = 43 \equiv 17 \pmod{26}$$
+$$v_3 = 6+7+14+16 = 43 \equiv 17 \pmod{26}$$
+$$v_4 = 6+14+14+24 = 58 \equiv 6 \pmod{26}$$
+
+State after Block 1: $\mathbf{v}_1 = [2, 17, 17, 6]$
+
+**Block 2:** $\mathbf{b}_2 = [8, 9, 9, 0]$
+
+Add: $[2+8, 17+9, 17+9, 6+0] = [10, 26, 26, 6] \equiv [10, 0, 0, 6] \pmod{26}$
+
+Apply $M$:
+
+$$v_1 = 10+0+0+6 = 16, \quad v_2 = 10+0+0+12 = 22$$
+$$v_3 = 10+0+0+12 = 22, \quad v_4 = 10+0+0+18 = 28 \equiv 2$$
+
+State after Block 2: $\mathbf{v}_2 = [16, 22, 22, 2]$
+
+**Block 3:** $\mathbf{b}_3 = [10, 11, 1, 2]$
+
+Add: $[16+10, 22+11, 22+1, 2+2] = [26, 33, 23, 4] \equiv [0, 7, 23, 4] \pmod{26}$
+
+Apply $M$:
+
+$$v_1 = 0+7+23+4 = 34 \equiv 8, \quad v_2 = 0+14+23+8 = 45 \equiv 19$$
+$$v_3 = 0+7+46+8 = 61 \equiv 9, \quad v_4 = 0+14+46+12 = 72 \equiv 20$$
+
+Final state: $[8, 19, 9, 20]$
+
+Convert back to letters ($0 \to A, 1 \to B, \ldots$):
+
+$$8 \to I, \quad 19 \to T, \quad 9 \to J, \quad 20 \to U$$
+
+$$TTH(\texttt{GH78IJ90KL12}) = \texttt{ITJU}$$
+
+This 4-character fingerprint is what the Commissioner stores — never the real $N_2$.
+
+### Verification during counting
+
+When the Counter sends $N_2$ from a decrypted ballot, the Commissioner recomputes:
+
+$$H(N_2) \stackrel{?}{=} h_{stored}$$
+
+From the exercise: $TTH(\texttt{GH78IJ90KL12}) = \texttt{ITJU}$ matches the stored fingerprint ✓
+
+---
+
+## The Anonymizer
+
+The Anonymizer uses no cryptographic formulas. Its role is purely structural — it breaks the chain between voter identity and ballot content.
+
+1. Receives $(N_1, C)$ from the voter
+2. Verifies $N_1$ with the Commissioner
+3. If valid, the Commissioner removes $N_1$ from the list (prevents double voting)
+4. Forwards only the encrypted vote $C$ with no voter information attached
+
+The Anonymizer never sees the vote. It is sealed inside $C = m^{e_{counter}} \pmod{N_{counter}}$, which only the Counter can open.
+
+---
+
+## The Counter
+
+The Counter uses two formulas after the voting period ends.
+
+### RSA Decryption
+
+$$m = C^{d_{counter}} \pmod{N_{counter}}$$
+
+Why does decryption recover $m$? Because $d_{counter}$ satisfies $e \cdot d \equiv 1 \pmod{\varphi(N)}$, so:
+
+$$C^d = (m^e)^d = m^{ed} \equiv m \pmod{N}$$
+
+by Euler's theorem — the same argument as in the unblinding step.
+
+From the exercise: $C = 512$, $e_{counter} = 3$, $N_{counter} = 583$. The Counter applies decryption to recover $m = 8$.
+
+### Signature Verification
+
+The Counter verifies the Administrator's signature $s$ on each ballot:
+
+$$s^{e_{admin}} \equiv m \pmod{N_{admin}}$$
+
+Why this works: since $s = m^d$, raising to the power $e$ gives:
+
+$$s^e = (m^d)^e = m^{de} \equiv m \pmod{N}$$
+
+If the result equals $m$, the signature is genuine. A forged $s$ would not satisfy this equation.
+
+Numerical proof ($s = 17$, $e = 27$, $N = 55$, expected $m = 8$):
+
+$$17^{27} \equiv 8 \pmod{55} \checkmark$$
+
+### $N_2$ Verification
+
+The Counter extracts $N_2$ from the decrypted ballot and sends it to the Commissioner:
+
+$$H(N_2) \stackrel{?}{=} h_{stored}$$
+
+From the exercise: Counter sends $N_2 = \texttt{GH78IJ90KL12}$. Commissioner checks $TTH(N_2) = \texttt{ITJU}$ against the stored list ✓
+
+Only if both signature verification and $N_2$ verification pass is the vote counted.
+
+---
+
+## Complete formula map
+
+| Role | Formula | Mathematical justification |
+|---|---|---|
+| Voter | $m' = m \cdot k^e \pmod{N}$ | Hides $m$ using RSA trapdoor |
+| Voter | $s = m'' \cdot k^{-1} \pmod{N}$ | Cancels blinding; yields $s = m^d$ |
+| Voter | $C = m^{e_{counter}} \pmod{N_{counter}}$ | Standard RSA encryption |
+| Administrator | $m'' = (m')^d \pmod{N}$ | RSA signing on blinded input |
+| Commissioner | $h = H(N_2)$ | One-way function; pre-image resistant |
+| Commissioner | $H(N_2) \stackrel{?}{=} h_{stored}$ | Equality check on hash outputs |
+| Counter | $m = C^{d_{counter}} \pmod{N_{counter}}$ | RSA decryption; inverse of encryption |
+| Counter | $s^{e_{admin}} \equiv m \pmod{N_{admin}}$ | RSA verification; $s^e = m^{de} \equiv m$ |
