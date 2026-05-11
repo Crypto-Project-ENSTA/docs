@@ -109,10 +109,7 @@
         "group": "API Reference",
         "icon": "plug",
         "pages": [
-          "api/endpoints",
-          "api/authentication",
-          "api/errors",
-          "api/schemas"
+          "api/endpoints"
         ]
       },
       {
