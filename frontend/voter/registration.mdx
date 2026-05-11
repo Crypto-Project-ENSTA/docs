@@ -1,0 +1,67 @@
+---
+title: "Registration"
+description: "Submit your email during the registration phase to receive your N1 authentication token and N2 verification token."
+---
+
+Registration is the first step in the Evoting process. You submit your email address while the election is open for registration, and the system issues you two personal codes — an N1 code and an N2 code — that you will use to authenticate, cast, and later verify your vote.
+
+## Prerequisites
+
+Registration is only available while the election is in the `register` phase. Once an administrator starts the vote, the registration window closes and new voters cannot be added.
+
+Before you register, confirm that:
+
+- The election status is `register` (the voting phase has not yet started).
+- You have a valid email address that has not already been used to register for this election.
+
+## Steps
+
+**1. Navigate to the registration page**
+
+Open your browser and go to `/register`. You will see a form asking for your email address.
+
+**2. Enter your email address**
+
+Type the email address you want to associate with your ballot. Each email address can only be registered once per election.
+
+**3. Submit the form**
+
+Click **Register**. The system calls `POST /voters/register` with your email.
+
+**4. Save your N1 and N2 codes**
+
+On success, the page displays your N1 code and your N2 code. Copy both codes immediately and store them somewhere safe — a password manager is recommended.
+
+## Your N1 and N2 codes
+
+**N1 — Authentication token**
+
+Your N1 code proves that you are a registered voter. You enter it on the `/vote` page before you can access the ballot. It authenticates your session without revealing your identity.
+
+**N2 — Verification token**
+
+Your N2 code is used in two places: you submit it alongside your vote when casting your ballot, and you enter it later on the `/results/verify-vote` page to confirm your vote was counted correctly.
+
+Save both codes before you close the registration page. N1 and N2 codes are not stored in a recoverable form — if you lose them, you will not be able to vote or verify your ballot.
+
+## Possible responses
+
+**Registration successful**
+
+```json
+{
+  "status": "success",
+  "message": "voter registered successfully",
+}
+```
+
+**Email already registered**
+
+```json
+{
+  "status": "error",
+  "message": "email already exists"
+}
+```
+
+Each email address can only be registered once. If you see this response, the email you entered was already used to register for this election. Use the N1 and N2 codes you received when you first registered.

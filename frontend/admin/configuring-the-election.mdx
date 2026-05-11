@@ -1,0 +1,62 @@
+---
+title: "Configuring the Election"
+description: "Define your election topic, set the maximum voter count, and add candidate choices using the Vote Theme panel before starting the vote."
+---
+
+The **Vote Theme** panel in the admin dashboard lets you define what voters are choosing between. You set the election topic, the maximum number of voters allowed, and the list of candidates. All of these settings are submitted as a single PATCH request to the backend when you save.
+
+## When to configure
+
+Configure the election during the **Registration Open** phase (`register`), before you click **Start Vote**. Once voting begins, the form fields are no longer editable.
+
+Configure the election before registration starts so voters know exactly what they are voting on when they receive their codes. Changing candidate choices after registration has started may confuse voters who already have their codes. Finalize your choices before opening registration.
+
+## Steps
+
+**1. Open the admin dashboard**
+
+Navigate to `/admin` in your browser.
+
+**2. Find the Vote Theme card**
+
+Locate the **Vote Theme** configuration panel on the dashboard. It contains three fields: **Vote Theme**, **Max Voters**, and **Choices**.
+
+**3. Enter the vote topic**
+
+Type the election topic in the **Vote Theme** field. For example: `Best Framework 2025`. This is the question or topic voters will see.
+
+**4. Set the maximum voter count**
+
+Enter an integer of at least `1` in the **Max Voters** field. This limits how many voters can participate in the election.
+
+**5. Add candidates**
+
+In the **Choices** section, add at least two non-empty candidate options. Use the add and remove controls to manage the list.
+
+**6. Save your changes**
+
+Click **Save Changes**. The form validates your input before submitting. If validation passes, the settings are sent to the backend and the dashboard reflects the updated configuration.
+
+## Validation rules
+
+The form uses Zod schema validation. Your submission must satisfy all of the following:
+
+| Field | Rule |
+|---|---|
+| `vote_theme` | Required. Non-empty string. |
+| `num_voters` | Integer. Minimum value: `1`. |
+| `choices` | Array of at least 2 items. Each item must be a non-empty string. |
+
+## API reference
+
+Saving the form sends a PATCH request to `/config/voting-system-config` with the following payload shape:
+
+```json
+{
+  "vote_theme": "string",
+  "num_voters": 1,
+  "choices": ["Choice A", "Choice B"]
+}
+```
+
+A successful response returns the full updated `VotingTheme` object.

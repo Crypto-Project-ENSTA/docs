@@ -1,0 +1,66 @@
+---
+title: "Quickstart"
+description: "Register as a voter or set up an election as an administrator in five steps."
+---
+
+Evoting supports two distinct starting points: voters joining an election and administrators setting one up. Follow the path that applies to you. Both paths assume an election is already deployed and accessible at its base URL.
+
+**Voting phases matter.** Certain actions are only available in the correct phase. Registration is only open during the `register` phase, voting is only open during `vote_started`, and verification is only available after `vote_ended`. If a page appears inactive or locked, check the current election status with your administrator.
+
+---
+
+## I'm a Voter
+
+**1. Register for the election**
+
+Navigate to `/register` and submit your email address. Registration is only available while the election is in the **registration** phase. You will receive two unique codes: **N1** (your authentication token) and **N2** (your verification token).
+
+Store your N2 code somewhere safe before you vote. Once you submit your ballot, you cannot retrieve N2 again from the system. You will need it to verify your vote after results are published.
+
+**2. Wait for voting to open**
+
+The administrator controls when voting begins. You cannot cast a ballot during the registration phase. Check back when the election status changes to **vote started**.
+
+**3. Authenticate at /vote with your N1 code**
+
+Navigate to `/vote`. Enter your **N1 code** to authenticate. The system validates your N1 against the commissioner's eligibility list. Your N1 code is consumed at this step — it cannot be reused.
+
+**4. Cast your vote with your N2 code**
+
+Select your preferred candidate from the available choices. Enter your **N2 code** to sign your ballot. Your vote is encrypted with the counter's public key and blind-signed by the administrator before submission, so no one can read your choice.
+
+**5. Verify your vote at /results/verify-vote**
+
+After the administrator ends the election and results are published, navigate to `/results/verify-vote`. Enter your **N2 code** to confirm your ballot appears in the published tally. Verification proves your vote was counted without revealing your identity or your choice to any other party.
+
+---
+
+## I'm an Admin
+
+**1. Go to /admin**
+
+Navigate to `/admin`. The admin dashboard shows the current election status, voter registration count, and access to all configuration and control actions.
+
+**2. Configure the election**
+
+Use the **Vote Theme** configuration panel to set up the election before opening registration. The following fields are required:
+
+- `vote_theme` — the display name or topic of the election
+- `num_voters` — the maximum number of eligible voters
+- `choices[]` — the list of candidate or option names voters will choose from
+
+Save your configuration before moving to the next phase.
+
+**3. Open registration, then start the vote**
+
+When you are ready to accept voters, the election is in the `register` phase. Voters can now register at `/register` and receive their N1 and N2 codes. When registration is complete, **start the vote** from the admin dashboard. This moves the election to `vote_started` and opens `/vote` for authenticated voters.
+
+**4. Monitor results**
+
+While voting is open, the admin dashboard shows live participation status — how many registered voters have cast ballots. Individual vote contents are not visible; only aggregate participation data is shown.
+
+**5. End the vote**
+
+When you are ready to close the election, click **End Vote** in the admin dashboard. This moves the election to `vote_ended`, triggers decryption by the counter, and publishes the final tally. Voters can now verify their ballots at `/results/verify-vote`.
+
+The election phase transitions are one-way and irreversible. You cannot reopen voting after ending it, and you cannot reopen registration after starting the vote.

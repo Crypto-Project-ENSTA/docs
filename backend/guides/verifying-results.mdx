@@ -1,0 +1,60 @@
+---
+title: "Verifying Results"
+description: "Fetch the final tally and verify individual ballots using N2 after the election ends."
+---
+
+Once the election moves to `vote_ended`, two result endpoints become available: one for the aggregate tally and one for individual ballot verification.
+
+## Get the tally
+
+```bash
+curl http://localhost:8000/results/tally
+```
+
+**Response**
+
+```json
+{
+  "total_votes": 42,
+  "tally": [
+    {"candidate": "Candidate A", "count": 27, "percentage": 64.3},
+    {"candidate": "Candidate B", "count": 15, "percentage": 35.7}
+  ]
+}
+```
+
+The tally endpoint reads all `counted_votes` rows with `status = VALID` and aggregates by vote choice. Only valid ballots are included in the count.
+
+## Verify an individual ballot
+
+```bash
+curl -X POST http://localhost:8000/results/verify-vote \
+  -H "Content-Type: application/json" \
+  -d '{"n2": "YOUR_N2_CODE"}'
+```
+
+**Response schema**
+
+```json
+{
+  "found": true,
+  "status": "valid",
+  "vote": "Candidate A",
+  "message": "Your vote was counted successfully."
+}
+```
+
+The server computes `sha256(n2)` and looks up the hash in `counted_votes.hash_n2`. The `status` field reflects the cryptographic verification outcome for that ballot.
+
+## Status meanings
+
+| Status | Meaning |
+|---|---|
+| `valid` | Ballot counted. Both signature and N2 hash checks passed. |
+| `invalid_signature` | Ballot found but Administrator signature verification failed. May indicate tampering. |
+| `invalid_n2` | Signature valid but N2 hash not found in commissioner's credential store. |
+| `found: false` | No ballot with this N2 hash in the results. Vote was not recorded. |
+
+## Availability
+
+Both endpoints return `403 Forbidden` if `voting_status` is not `vote_ended`. They are read-only and require no authentication — any person with an N2 code can verify the corresponding ballot.

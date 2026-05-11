@@ -1,0 +1,95 @@
+---
+title: "End-to-End Vote Flow"
+description: "The complete cryptographic journey of a vote from browser to final tally, including all stages and the separation of knowledge between parties."
+---
+
+This page traces the full lifecycle of a single ballot — from the moment the voter opens the registration page to the moment they verify their ballot was counted. Each step is shown alongside which party can see what, and what happens cryptographically.
+
+## Full end-to-end sequence
+
+```mermaid
+sequenceDiagram
+    actor Voter
+    participant Browser
+    participant Backend
+    participant Commissioner
+    participant Administrator
+    participant Anonymizer
+    participant Counter
+
+    Voter->>Browser: enter email at /register
+    Browser->>Backend: POST /voters/register
+    Backend->>Commissioner: store N1, hash(N2)
+    Backend-->>Voter: N1 + N2 sent by email
+
+    Note over Voter: election moves to vote_started
+
+    Voter->>Browser: enter N1 at /vote step 1
+    Browser->>Backend: POST /voters/check_n1
+    Backend->>Commissioner: is_N1_exist(N1)?
+    Commissioner-->>Backend: true
+    Backend-->>Browser: eligibility confirmed
+
+    Browser->>Browser: m = (vote, N2, random_bits)
+    Browser->>Browser: pick k, compute m' = m * k^e mod N_admin
+    Browser->>Backend: submit blinded ballot m'
+    Backend->>Administrator: sign_masked_ballot(m')
+    Administrator-->>Backend: s' = (m')^d mod N_admin
+    Backend-->>Browser: s'
+
+    Browser->>Browser: s = s' * k^-1 mod N_admin
+    Browser->>Backend: GET /vote/public-key
+    Backend->>Counter: get public key
+    Counter-->>Backend: (e_counter, N_counter)
+    Backend-->>Browser: counter public key
+
+    Browser->>Browser: C = s^e_counter mod N_counter
+    Browser->>Backend: POST /voters/submit_vote (N1, C)
+    Backend->>Anonymizer: anonymize_and_submit(N1, C)
+    Anonymizer->>Commissioner: consume_N1(N1)
+    Commissioner-->>Anonymizer: ok, N1 deleted
+    Anonymizer->>Counter: store ciphertext C
+    Backend-->>Browser: accepted
+
+    Note over Voter: election moves to vote_ended
+
+    Counter->>Counter: m = C^d_counter mod N_counter
+    Counter->>Administrator: verify s^e_admin mod N_admin == m ?
+    Counter->>Commissioner: H(N2) == stored hash?
+    Counter->>Counter: record VALID / INVALID_SIGNATURE / INVALID_N2
+
+    Voter->>Backend: POST /results/verify-vote (N2)
+    Backend-->>Voter: found, status, vote, message
+```
+
+## What each party learns at each stage
+
+| Stage | Administrator sees | Commissioner sees | Anonymizer sees | Counter sees |
+|---|---|---|---|---|
+| Registration | Nothing | N1, hash(N2) | Nothing | Nothing |
+| N1 check | Nothing | N1 query | Nothing | Nothing |
+| Ballot signing | Blinded m' only | Nothing | Nothing | Nothing |
+| Vote submission | Nothing | N1 consumed | N1 + ciphertext C | Ciphertext C stored |
+| Counting | Public key used | hash(N2) check | Nothing | Decrypted m, vote, N2 |
+
+No single party ever holds voter identity and plaintext vote content at the same time.
+
+## Information flow summary
+
+```mermaid
+graph LR
+    V["Voter\nN1, N2, vote choice"]
+    C["Commissioner\nN1 list\nhash N2 list"]
+    A["Administrator\nblinded m' only"]
+    AN["Anonymizer\nN1 + ciphertext C"]
+    CT["Counter\ndecrypted m\nvote, N2"]
+
+    V -->|"N1 check"| C
+    V -->|"m' blinded"| A
+    A -->|"s' blind sig"| V
+    V -->|"N1 + C"| AN
+    AN -->|"consume N1"| C
+    AN -->|"store C"| CT
+    CT -->|"verify hash N2"| C
+    CT -->|"verify signature"| A
+```

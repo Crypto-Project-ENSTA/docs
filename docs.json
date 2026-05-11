@@ -16,7 +16,82 @@
     "groups": [
       {
         "group": "Get Started",
-        "pages": ["introduction", "architecture", "security-model"]
+        "pages": [
+          "frontend/introduction",
+          "frontend/quickstart",
+          "frontend/architecture"
+        ]
+      },
+      {
+        "group": "Voter Guide",
+        "icon": "user",
+        "pages": [
+          "frontend/voter/registration",
+          "frontend/voter/casting-a-vote",
+          "frontend/voter/verifying-your-vote"
+        ]
+      },
+      {
+        "group": "Admin Guide",
+        "icon": "shield",
+        "pages": [
+          "frontend/admin/overview",
+          "frontend/admin/configuring-the-election",
+          "frontend/admin/managing-the-vote"
+        ]
+      },
+      {
+        "group": "Frontend Security",
+        "icon": "lock",
+        "pages": [
+          "frontend/security/overview",
+          "frontend/security/blind-signatures",
+          "frontend/security/vote-flow"
+        ]
+      },
+      {
+        "group": "Backend",
+        "icon": "gear",
+        "pages": [
+          "backend/introduction",
+          "backend/quickstart",
+          "backend/configuration",
+          "backend/architecture",
+          "backend/cryptographic-protocol",
+          "backend/data-models"
+        ]
+      },
+      {
+        "group": "Backend Guides",
+        "icon": "book",
+        "pages": [
+          "backend/guides/voter-registration",
+          "backend/guides/casting-a-vote",
+          "backend/guides/verifying-results",
+          "backend/guides/managing-elections",
+          "backend/guides/deployment"
+        ]
+      },
+      {
+        "group": "Cryptography",
+        "icon": "key",
+        "pages": [
+          "crypto/protocol",
+          "crypto/blind-signature",
+          "crypto/rsa",
+          "crypto/hashing",
+          "crypto/roles-formulas",
+          "crypto/threat-model"
+        ]
+      },
+      {
+        "group": "Database",
+        "icon": "database",
+        "pages": [
+          "database/schema",
+          "database/migrations",
+          "database/security-rules"
+        ]
       },
       {
         "group": "Infrastructure",
@@ -39,55 +114,13 @@
         ]
       },
       {
-        "group": "Backend",
-        "icon": "gear",
+        "group": "API Reference",
+        "icon": "plug",
         "pages": [
-          "backend/overview",
-          "backend/services",
-          "backend/repositories",
-          "backend/authentication-flow",
-          "backend/deployment"
-        ]
-      },
-      {
-        "group": "Frontend",
-        "icon": "display",
-        "pages": [
-          "frontend/overview",
-          "frontend/pages",
-          "frontend/voting-flow",
-          "frontend/api-integration",
-          "frontend/state-management"
-        ]
-      },
-      {
-        "group": "Database",
-        "icon": "database",
-        "pages": [
-          "database/schema",
-          "database/migrations",
-          "database/security-rules"
-        ]
-      },
-      {
-        "group": "Cryptography",
-        "icon": "key",
-        "pages": [
-          "crypto/protocol",
-          "crypto/blind-signature",
-          "crypto/rsa",
-          "crypto/hashing",
-          "crypto/threat-model"
-        ]
-      },
-      {
-         "group": "API Reference",
-         "icon": "plug",
-         "pages": [
-         "api/endpoints",
-         "api/authentication",
-         "api/errors",
-         "api/schemas"
+          "api/endpoints",
+          "api/authentication",
+          "api/errors",
+          "api/schemas"
         ]
       },
       {
@@ -104,18 +137,18 @@
     "links": [
       {
         "label": "GitHub",
-        "href": "https://github.com/secure-evoting"
+        "href": "https://github.com/Crypto-Project-ENSTA"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Architecture",
-      "href": "/architecture"
+      "label": "Live App",
+      "href": "https://evoting-main.vercel.app"
     }
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/secure-evoting"
+      "github": "https://github.com/Crypto-Project-ENSTA"
     }
   }
 }

@@ -1,0 +1,78 @@
+---
+title: "Deployment"
+description: "Deploy the Crypto E-Voting API to production on Render with a Neon PostgreSQL database."
+---
+
+The backend is deployed on Render as a Python web service connected to a Neon PostgreSQL database. Deployments trigger automatically on every push to `main`.
+
+## Render service configuration
+
+| Setting | Value |
+|---|---|
+| Runtime | Python 3.11 |
+| Build command | `pip install -r requirements.txt` |
+| Start command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Auto-deploy | On push to `main` |
+| Health check path | `GET /health` |
+
+Render injects the `$PORT` environment variable automatically. The app binds to `0.0.0.0` so Render's load balancer can reach it.
+
+## Deploy pipeline
+
+```mermaid
+flowchart LR
+    Dev["push to main"]
+    Render["Render detects push"]
+    Build["pip install -r requirements.txt"]
+    Start["uvicorn starts"]
+    Health["GET /health passes"]
+    Live["service live"]
+
+    Dev --> Render --> Build --> Start --> Health --> Live
+```
+
+## Migration workflow for production
+
+Schema migrations must be applied before deploying code that depends on the new schema. The correct sequence is always: migrate first, then deploy.
+
+```mermaid
+sequenceDiagram
+    participant Dev
+    participant Neon as Neon DB
+    participant Render
+
+    Dev->>Dev: alembic revision --autogenerate -m "describe change"
+    Dev->>Dev: review generated migration file
+    Dev->>Neon: alembic upgrade head
+    Neon-->>Dev: migration applied
+    Dev->>Render: push to main
+    Render-->>Dev: deploy succeeds
+```
+
+Deploying code before running the migration causes 500 errors on any route that touches the new schema.
+
+## Environment variables on Render
+
+Set these in the Render service environment tab. Never commit them to the repository.
+
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` | Neon connection string with `?sslmode=require` |
+| `SECRET_KEY` | Random 32+ character string |
+| `ENV` | Set to `production` |
+| `ALLOWED_ORIGINS` | Your Vercel frontend URL |
+| `EMAIL_FROM` | Gmail sender address |
+| `GMAIL_TOKEN` | Short-lived OAuth access token |
+| `GMAIL_REFRESH_TOKEN` | Long-lived refresh token |
+| `GMAIL_CLIENT_ID` | Google Cloud OAuth client ID |
+| `GMAIL_CLIENT_SECRET` | Google Cloud OAuth client secret |
+
+## Neon database
+
+The Neon connection string format is:
+
+```
+postgresql://user:password@ep-xxx.neon.tech/dbname?sslmode=require
+```
+
+Neon requires SSL for all connections. The `?sslmode=require` parameter is mandatory. SQLAlchemy handles connection pooling automatically.

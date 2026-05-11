@@ -1,0 +1,63 @@
+---
+title: "Verifying Your Vote"
+description: "Use your 12-character N2 code after the election closes to confirm your ballot appears in published results and carries a valid cryptographic signature."
+---
+
+Evoting supports public verifiability: once the election ends, all cast ballots are published as a list of `(N2, vote)` pairs. Any person who holds an N2 code can check whether the corresponding ballot appears in that list and whether its cryptographic signature is intact.
+
+## Prerequisites
+
+Vote verification is only available after the election moves to the `vote_ended` phase. If voting is still in progress, the results have not been published yet.
+
+You need:
+
+- Your **N2 code** from registration. N2 codes are exactly 12 uppercase letters and numbers (for example, `A1B2C3D4E5F6`).
+- The election to be in the `vote_ended` phase.
+
+## Steps
+
+**1. Navigate to the verification page**
+
+Go to `/results/verify-vote`. You will see a form with a single input field.
+
+**2. Enter your N2 code**
+
+Type or paste your N2 code exactly as you received it during registration.
+
+**3. Submit and review the result**
+
+Click **Verify**. The system sends your N2 code to `POST /results/verify-vote` and returns a verification record.
+
+## Understanding the response
+
+The API returns a `VerifyVoteResponse` object:
+
+```ts
+type VerifyVoteResponse = {
+  found: boolean;
+  status: "valid" | "invalid_signature" | "invalid_n2" | null;
+  vote: string | null;
+  message: string;
+};
+```
+
+**valid** — your ballot was found in the published results and its cryptographic signature passed verification. Your vote was counted as cast.
+
+**invalid_signature** — a ballot with your N2 code was found, but the signature check failed. This may indicate the ballot was tampered with after submission.
+
+**invalid_n2** — the N2 hash in the published record does not match the N2 you provided. The ballot associated with this record may have been forged.
+
+**found: false** — no ballot with your N2 code appears in the published results. Your vote was not recorded in the final tally.
+
+## Response fields
+
+| Field | Type | Description |
+|---|---|---|
+| `found` | `boolean` | Whether an entry for your N2 code exists in the published results |
+| `status` | `string \| null` | Cryptographic verification outcome. `null` when `found` is `false` |
+| `vote` | `string \| null` | The candidate recorded against your N2 code, if found |
+| `message` | `string` | Human-readable description of the outcome |
+
+## Public and anonymous verification
+
+Verification is completely public and anonymous. Anyone who has an N2 code can verify the corresponding ballot — you do not need to log in or prove ownership. This allows independent auditors to verify the entire election by checking every published N2 against the results.

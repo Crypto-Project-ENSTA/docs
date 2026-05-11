@@ -1,0 +1,103 @@
+---
+title: "Quickstart"
+description: "Install dependencies, configure your environment, run database migrations, start the server, and cast your first test vote."
+---
+
+This guide walks you through setting up the Crypto E-Voting API on your local machine. By the end you will have a running FastAPI server connected to PostgreSQL, with database migrations applied and a voter registered through the API.
+
+## Prerequisites
+
+Make sure the following are installed and running before you begin:
+
+- **Python 3.10 or later** — the backend uses union type syntax (`X | Y`) available from 3.10+
+- **PostgreSQL** — the primary data store for voters, votes, credentials, and election configuration
+
+## Setup
+
+**1. Clone the repository and install dependencies**
+
+```bash
+git clone https://github.com/Crypto-Project-ENSTA/back-end.git
+cd back-end
+pip install -r requirements.txt
+```
+
+Key packages installed include `fastapi`, `uvicorn`, `sqlalchemy`, `alembic`, `psycopg2-binary`, `cryptography`, and `pydantic-settings`.
+
+**2. Configure your environment**
+
+```bash
+cp .env.example .env.local
+```
+
+Open `.env.local` and set each variable:
+
+```bash
+ENV=development
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+DATABASE_URL=postgresql://user:password@localhost:5432/evoting
+SECRET_KEY=your-secret-key-here
+EMAIL_FROM=your-email@gmail.com
+GMAIL_TOKEN=ya29.your-access-token
+GMAIL_REFRESH_TOKEN=1//your-refresh-token
+GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=GOCSPX-your-client-secret
+```
+
+Never commit `.env.local` or any file containing real credentials to version control.
+
+**3. Run database migrations**
+
+```bash
+alembic upgrade head
+```
+
+Alembic reads the `DATABASE_URL` from your `.env.local` file and creates the `voters`, `votes`, `credentials`, `counted_votes`, and `voting_system_config` tables.
+
+**4. Start the development server**
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The server starts on `http://127.0.0.1:8000`. Confirm it is running:
+
+```bash
+curl http://127.0.0.1:8000/health
+# {"status": "ok"}
+```
+
+**5. Register a voter**
+
+```bash
+curl -X POST http://127.0.0.1:8000/voters/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "alice@example.com"}'
+```
+
+A successful registration returns HTTP `201`:
+
+```json
+{
+  "status": "success",
+  "message": "Voter registered successfully",
+  "voter": "alice@example.com"
+}
+```
+
+If the email is already registered, the API returns HTTP `409`:
+
+```json
+{
+  "status": "error",
+  "message": "Email already exists",
+  "voter": "alice@example.com"
+}
+```
+
+**6. Verify the health endpoint**
+
+```bash
+curl http://127.0.0.1:8000/
+# {"message": "API is running"}
+```
