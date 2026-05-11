@@ -1,0 +1,240 @@
+---
+title: "Endpoints"
+description: "All HTTP endpoints exposed by the CryptoVote backend, with request bodies, response schemas, and error codes."
+---
+
+The backend exposes 12 endpoints across five groups. The base URL is configured via `VITE_API_URL` on the frontend (`https://evoting-main.onrender.com` in production).
+
+---
+
+## Config
+
+### `GET /config/voting-system-config`
+
+Returns the current election configuration.
+
+```json
+// Response 200
+{
+  "num_voters": 0,
+  "vote_theme": "string",
+  "choices": ["string"]
+}
+```
+
+### `PATCH /config/voting-system-config`
+
+Updates one or more config fields. Only provided fields are modified.
+
+```json
+// Request body
+{
+  "num_voters": 50,
+  "vote_theme": "Best Framework 2025",
+  "choices": ["React", "Vue", "Svelte"]
+}
+
+// Response 200
+{
+  "num_voters": 50,
+  "vote_theme": "Best Framework 2025",
+  "choices": ["React", "Vue", "Svelte"]
+}
+```
+
+| Code | Reason |
+|---|---|
+| `200` | Config updated successfully |
+| `422` | Validation error — malformed request body |
+
+---
+
+## Voters
+
+### `POST /voters/register`
+
+Registers a voter by email address.
+
+```json
+// Request body
+{ "email": "alice@example.com" }
+
+// Response 201
+{
+  "message": "Voter registered successfully",
+  "status": "success",
+  "voter": "alice@example.com"
+}
+```
+
+| Code | Reason |
+|---|---|
+| `201` | Voter registered successfully |
+| `400` | Malformed payload or unexpected DB error |
+| `409` | Email already registered |
+| `422` | Validation error |
+
+### `POST /voters/check_n1`
+
+Verifies a voter's N1 code against the commissioner. If valid, the N1 is stored in the server-side session so it does not need to be resent on the next call. This step must be completed before `/voters/submit_vote` — skipping it returns `403`.
+
+```json
+// Request body
+{ "n1": "A3F7K2M1P9Q4" }
+
+// Response 200
+{ "is_N1_exist": true }
+```
+
+| Code | Reason |
+|---|---|
+| `200` | Check completed — inspect `is_N1_exist` in the response |
+| `422` | Validation error |
+| `500` | Unexpected error communicating with the commissioner service |
+
+### `POST /voters/submit_vote`
+
+Submits the voter's ballot. The N1 code is read automatically from the session (set by `/check_n1`) and cleared after the vote is accepted, preventing double voting.
+
+```json
+// Request body
+{
+  "n2": "X9Q1M4B2R7Z3",
+  "vote": "React"
+}
+
+// Response 200
+{
+  "message": "Vote submitted successfully and sent to anonymizer",
+  "status": "success"
+}
+```
+
+| Code | Reason |
+|---|---|
+| `200` | Ballot accepted and forwarded to the anonymizer |
+| `400` | Invalid N2 format or unrecognised vote choice |
+| `403` | N1 not in session — call `/check_n1` first, or session expired |
+| `422` | Validation error |
+| `500` | Unexpected error during ballot processing |
+
+---
+
+## Results
+
+### `GET /results/tally`
+
+Returns vote counts and percentages per candidate. Only `valid` votes are included — `invalid_signature` and `invalid_n2` ballots are excluded from all counts.
+
+```json
+// Response 200
+{
+  "total_votes": 5,
+  "tally": [
+    { "candidate": "React", "count": 3, "percentage": 60 },
+    { "candidate": "Vue", "count": 2, "percentage": 40 }
+  ]
+}
+```
+
+| Code | Reason |
+|---|---|
+| `200` | Tally returned (may be empty if no votes yet) |
+| `500` | Internal server error while retrieving results |
+
+### `POST /results/verify-vote`
+
+Allows a voter to confirm whether their ballot was received and counted. Read-only — does not mutate any state.
+
+```json
+// Request body
+{ "n2": "X9Q1M4B2R7Z3" }
+```
+
+**Possible outcomes:**
+
+**Vote not found**
+```json
+{
+  "found": false,
+  "status": null,
+  "vote": null,
+  "message": "No vote found with this N2 fingerprint"
+}
+```
+
+**Valid** — both signature and N2 fingerprint passed, vote counted:
+```json
+{
+  "found": true,
+  "status": "valid",
+  "vote": "React",
+  "message": "Your vote was counted successfully"
+}
+```
+
+**Invalid signature** — received but failed signature verification, not counted:
+```json
+{
+  "found": true,
+  "status": "invalid_signature",
+  "vote": null,
+  "message": "Your vote was rejected due to invalid signature"
+}
+```
+
+**Invalid N2** — signature valid but N2 fingerprint did not match registered credentials, not counted:
+```json
+{
+  "found": true,
+  "status": "invalid_n2",
+  "vote": null,
+  "message": "Your vote was rejected due to invalid N2 fingerprint"
+}
+```
+
+| Code | Reason |
+|---|---|
+| `200` | Lookup completed — check `found` and `status` fields |
+| `422` | Validation error |
+| `500` | Internal server error while verifying the vote |
+
+---
+
+## Voting Controls
+
+### `POST /voting/start-vote`
+
+Transitions the election from `register` to `vote_started`. Generates N1/N2 credentials for all registered voters and sends them by email.
+
+### `POST /voting/end-vote`
+
+Transitions the election from `vote_started` to `vote_ended` and triggers the counter to decrypt and tally all ballots.
+
+### `GET /voting/vote-status`
+
+Returns the current election phase.
+
+```json
+// Response 200
+{ "voting_status": "register" }
+```
+
+Possible values: `register`, `vote_started`, `vote_ended`
+
+| Code | Reason |
+|---|---|
+| `200` | Current voting status returned |
+| `404` | Voting configuration not found |
+
+---
+
+## System
+
+### `GET /`
+
+Confirms the API is running. Returns `{"message": "API is running"}`.
+
+### `GET /health`
+
+Health check endpoint used by Render. Returns `{"status": "ok"}`.

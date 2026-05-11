@@ -49,21 +49,38 @@ graph TD
 
 ---
 
-## Frontend folder structure
+## Folder structure
 
 ```
 src/
 ├── app/
-│   ├── (voter)/          # /register, /vote, /done, /results/verify-vote
-│   └── admin/            # /admin dashboard
+│   ├── page.tsx                   # landing page
+│   ├── layout.tsx
+│   ├── globals.css
+│   ├── admin/                     # /admin
+│   ├── register/                  # /register
+│   ├── vote/                      # /vote
+│   ├── results/                   # /results
+│   │   └── verify-vote/           # /results/verify-vote
+│   ├── theme/                     # /theme
+│   └── [slug]/                    # static pages (about, policies)
 ├── components/
-│   ├── Admin/            # VoteControls, ConfigEditor, AdminResults
-│   ├── Vote/             # AuthStep, VoteStep, VoteStepper, VoteNotStarted, VoteEnded
-│   └── ui/               # shared shadcn/ui primitives
-├── hooks/                # one TanStack Query hook per API resource
-├── lib/                  # Axios instance, crypto helpers
-├── store/                # Zustand auth store
-└── types/                # TypeScript types mirroring backend Pydantic schemas
+│   ├── Admin/                     # AdminDashboard, AdminResults, ConfigEditor, VoteControls
+│   ├── Vote/                      # AuthStep, VoteStep, VoteStarted, VoteNotStarted, VoteEnded, VoteSubmitted, VoteTheme, Stepper
+│   ├── Landing/                   # Hero, Features, Faqs, Team, TechStack, VotingTimeline
+│   ├── Results/                   # VotingResults, VerifyMyVote
+│   └── ui/                        # shared shadcn/ui primitives
+├── hooks/                         # useVoteStatus, useSubmitVote, useVerifyVote, useStartVote, useEndVote, ...
+├── lib/
+│   ├── api/                       # one file per endpoint: auth, submitVote, votingStatus, votingTheme, verify, ...
+│   └── utils.ts
+├── providers/
+│   └── QueryProvider.tsx          # TanStack Query client provider
+├── static/                        # markdown content for /about and /policies
+├── store/
+│   └── useVoteStore.ts            # Zustand store
+└── types/
+    └── index.ts
 ```
 
 ---
@@ -96,9 +113,7 @@ sequenceDiagram
 
     Browser->>Backend: POST /voters/check_n1 {n1}
     Backend-->>Browser: {is_N1_exist: true}
-    Browser->>Backend: POST /voters/submit_vote {n1, vote, n2}
-    Backend-->>Browser: {signed_ballot: s'}
-    Browser->>Backend: POST /voters/submit_encrypted_vote {encrypted_vote}
+    Browser->>Backend: POST /voters/submit_vote {vote, n2}
     Backend-->>Browser: {status: "accepted"}
 ```
 
